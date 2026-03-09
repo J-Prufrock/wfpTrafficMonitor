@@ -2,6 +2,7 @@
 #include <ws2tcpip.h>
 #include <thread>
 #include <iostream>
+#include <fstream>
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -14,7 +15,7 @@ void run_server()
 
 	sockaddr_in addr;
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(8080);
+	addr.sin_port = htons(9000);
 	inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
 
 	bind(listener, (sockaddr*)&addr, sizeof(addr));
@@ -50,9 +51,19 @@ void run_client()
 
 	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
+	// 指定源端口
+	sockaddr_in localAddr;
+	localAddr.sin_family = AF_INET;
+	localAddr.sin_port = htons(8080);        // 指定源端口
+	localAddr.sin_addr.s_addr = INADDR_ANY;   // 绑定到任意本地IP
+	if (bind(s, (sockaddr*)&localAddr, sizeof(localAddr)) == SOCKET_ERROR)
+	{
+		std::cout << "Bind failed, using random port\n";
+	}
+
 	sockaddr_in server;
 	server.sin_family = AF_INET;
-	server.sin_port = htons(8080);
+	server.sin_port = htons(9000);
 	inet_pton(AF_INET, "127.0.0.1", &server.sin_addr);
 
 	if (connect(s, (sockaddr*)&server, sizeof(server)) == SOCKET_ERROR)
@@ -65,13 +76,11 @@ void run_client()
 
 	std::cout << "Client connected\n";
 
-	const int SIZE = 1024 * 1024;   // 1MB
+	const int SIZE = 1024;   // 1MB
 	char* buffer = new char[SIZE];
-
 	memset(buffer, 'A', SIZE);
 
 	int total = 0;
-
 	while (total < SIZE)
 	{
 		int sent = send(s, buffer + total, SIZE - total, 0);
@@ -82,17 +91,19 @@ void run_client()
 	std::cout << "Client sent bytes: " << total << std::endl;
 
 	delete[] buffer;
-
 	closesocket(s);
 	WSACleanup();
 }
 
 int main()
 {
-	// 服务端线程
+	std::ofstream log("test.log");
+	std::cout.rdbuf(log.rdbuf());
+
 	std::thread server_thread(run_server);
 
-	// 客户端线程
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+
 	std::thread client_thread(run_client);
 
 	client_thread.join();
