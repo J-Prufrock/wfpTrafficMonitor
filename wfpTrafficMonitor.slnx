@@ -4,11 +4,10 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/解决方案项/">
-    <File Path="build.ps1" />
-    <File Path="clean.ps1" />
     <File Path="README.md" />
-    <File Path="run.ps1" />
-    <File Path="笔试题附件.exe" />
+    <File Path="x64/Release/clean.ps1" />
+    <File Path="x64/Release/result.txt" />
+    <File Path="x64/Release/run.ps1" />
   </Folder>
   <Project Path="driver/driver.vcxproj">
     <Platform Project="x64" />
