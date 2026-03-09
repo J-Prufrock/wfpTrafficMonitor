@@ -11,23 +11,30 @@ void run_server()
 	WSAStartup(MAKEWORD(2, 2), &wsa);
 
 	SOCKET listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
 	sockaddr_in addr;
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(8080);           // 服务端监听端口
+	addr.sin_port = htons(8080);
 	inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
 
 	bind(listener, (sockaddr*)&addr, sizeof(addr));
 	listen(listener, 5);
-	std::cout << "Server listening on 127.0.0.1:8080\n";
+
+	std::cout << "Server listening\n";
 
 	SOCKET client = accept(listener, NULL, NULL);
-	char buf[1024];
+
+	char buf[4096];
+
 	int n;
+	long long total = 0;
+
 	while ((n = recv(client, buf, sizeof(buf), 0)) > 0)
 	{
-		// 回显数据
-		send(client, buf, n, 0);
+		total += n;
 	}
+
+	std::cout << "Server received bytes: " << total << std::endl;
 
 	closesocket(client);
 	closesocket(listener);
@@ -36,13 +43,13 @@ void run_server()
 
 void run_client()
 {
-	// 等服务器启动
 	Sleep(500);
 
 	WSADATA wsa;
 	WSAStartup(MAKEWORD(2, 2), &wsa);
 
 	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
 	sockaddr_in server;
 	server.sin_family = AF_INET;
 	server.sin_port = htons(8080);
@@ -56,22 +63,25 @@ void run_client()
 		return;
 	}
 
-	std::cout << "Client connected to server\n";
+	std::cout << "Client connected\n";
 
-	const char* msg = "Hello, WFP monitor!\n";
-	for (int i = 0; i < 10; i++)
+	const int SIZE = 1024 * 1024;   // 1MB
+	char* buffer = new char[SIZE];
+
+	memset(buffer, 'A', SIZE);
+
+	int total = 0;
+
+	while (total < SIZE)
 	{
-		send(s, msg, strlen(msg), 0);
-
-		// 接收回显
-		char buf[1024];
-		int n = recv(s, buf, sizeof(buf) - 1, 0);
-		if (n > 0)
-		{
-			buf[n] = 0;
-			std::cout << "Received: " << buf;
-		}
+		int sent = send(s, buffer + total, SIZE - total, 0);
+		if (sent <= 0) break;
+		total += sent;
 	}
+
+	std::cout << "Client sent bytes: " << total << std::endl;
+
+	delete[] buffer;
 
 	closesocket(s);
 	WSACleanup();
