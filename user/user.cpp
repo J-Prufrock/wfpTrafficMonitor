@@ -28,7 +28,7 @@ int main()
 	STARTUPINFO si{ sizeof(si) };
 	PROCESS_INFORMATION pi;
 
-	if (!CreateProcess(L"test.exe", NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &si, &pi))
+	if (!CreateProcess(L"test.exe", NULL, NULL, NULL, FALSE, CREATE_NO_WINDOW | CREATE_SUSPENDED, NULL, NULL, &si, &pi))
 	{
 		std::cout << "CreateProcess failed\n";
 		return 1;
@@ -55,16 +55,7 @@ int main()
 		std::cout << "ResumeThread failed\n";
 	}
 
-	DWORD pret = WaitForSingleObject(pi.hProcess, INFINITE);
-
-	if (pret == WAIT_OBJECT_0)
-	{
-		std::cout << "Process finished\n";
-	}
-	else if (pret == WAIT_FAILED)
-	{
-		std::cout << "Wait failed\n";
-	}
+	WaitForSingleObject(pi.hProcess, INFINITE);
 
 	FLOW_STATS stats;
 	if (DeviceIoControl(dev, IOCTL_GET_STATS, NULL, 0, &stats, sizeof(stats), &ret, NULL))
@@ -75,7 +66,7 @@ int main()
 	for (unsigned int i = 0; i < stats.count; i++)
 	{
 		stats.entries[i].ip = ntohl(stats.entries[i].ip);
-		//stats.entries[i].port = ntohs(stats.entries[i].port);
+		stats.entries[i].port = ntohs(stats.entries[i].port);
 		unsigned char b1 = stats.entries[i].ip & 0xFF;
 		unsigned char b2 = (stats.entries[i].ip >> 8) & 0xFF;
 		unsigned char b3 = (stats.entries[i].ip >> 16) & 0xFF;
@@ -87,26 +78,8 @@ int main()
 		f << "TX_BYTES=" << stats.entries[i].tx << "\n";
 		f << "RX_BYTES=" << stats.entries[i].rx << "\n\n";
 	}
+
 	f.close();
-
-	//关闭句柄
-	if (!CloseHandle(dev))
-	{
-		std::cout << "CloseHandle(dev) failed: " << GetLastError() << "\n";
-	}
-	else
-	{
-		std::cout << "CloseHandle(dev) success\n";
-	}
-
-	if (!CloseHandle(pi.hProcess))
-	{
-		std::cout << "CloseHandle(pi.hProcess) failed: " << GetLastError() << "\n";
-	}
-
-	if (!CloseHandle(pi.hThread))
-	{
-		std::cout << "CloseHandle(pi.hThread) failed: " << GetLastError() << "\n";
-	}
+	CloseHandle(dev);
 	return 0;
 }
