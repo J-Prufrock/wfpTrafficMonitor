@@ -1,11 +1,20 @@
 #include "callout.h"
 
 //定义 GUID
+<<<<<<< Updated upstream
 DEFINE_GUID(CALLOUT_STREAM_GUID,
 	0x12345678, 0x1111, 0x2222, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x11, 0x22);
 
 DEFINE_GUID(CALLOUT_FLOW_GUID,
 	0x87654321, 0x3333, 0x4444, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x33, 0x44);
+=======
+DEFINE_GUID(CALLOUT_STREAM_GUID, 0x12345678, 0x1111, 0x2222, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x11, 0x22);
+
+DEFINE_GUID(CALLOUT_FLOW_GUID, 0x87654321, 0x3333, 0x4444, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x33, 0x44);
+
+DEFINE_GUID(SUBLAYER_WFPMONITOR, 0xaabbccdd, 0x1111, 0x2222, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x11, 0x22);
+
+>>>>>>> Stashed changes
 
 // 全局变量
 static HANDLE gEngineHandle = NULL;
@@ -31,8 +40,7 @@ VOID StreamClassifyFn(const FWPS_INCOMING_VALUES* inFixedValues, const FWPS_INCO
 {
 	if (!layerData || !flowContext)
 	{
-		classifyOut->actionType = FWP_ACTION_PERMIT;
-		return;
+		goto end;
 	}
 
 	PFLOW_CONTEXT ctx = (PFLOW_CONTEXT)flowContext;
@@ -40,10 +48,12 @@ VOID StreamClassifyFn(const FWPS_INCOMING_VALUES* inFixedValues, const FWPS_INCO
 	//只处理目标 PID 的流量
 	if (!ctx || ctx->magic != 0x12345678 || ctx->pid != gTargetPid)
 	{
-		classifyOut->actionType = FWP_ACTION_PERMIT;
-		return;
+		goto end;
 	}
+	FWPS_STREAM_CALLOUT_IO_PACKET* packet = (FWPS_STREAM_CALLOUT_IO_PACKET*)layerData;
+	FWPS_STREAM_DATA* streamData = packet->streamData;
 
+<<<<<<< Updated upstream
 	FWPS_STREAM_DATA* streamData = (FWPS_STREAM_DATA*)layerData;
 
 	UINT64 bytes = streamData->dataLength;
@@ -52,14 +62,51 @@ VOID StreamClassifyFn(const FWPS_INCOMING_VALUES* inFixedValues, const FWPS_INCO
 		ctx->bytesRecv += bytes;
 	else
 		ctx->bytesSent += bytes;
+=======
+	UINT64 bytes = streamData->dataLength;
 
+	if (streamData->flags & FWPS_STREAM_FLAG_RECEIVE)
+	{
+		ctx->bytesRecv += bytes;
+	}
+	else if (streamData->flags & FWPS_STREAM_FLAG_SEND)
+	{
+		ctx->bytesSent += bytes;
+	}
+	packet->streamAction = FWPS_STREAM_ACTION_NONE;
+>>>>>>> Stashed changes
+
+end:
+
+	RtlZeroMemory(classifyOut, sizeof(FWPS_CLASSIFY_OUT));
 	classifyOut->actionType = FWP_ACTION_PERMIT;
+
+	if (filter->flags & FWPS_FILTER_FLAG_CLEAR_ACTION_RIGHT)
+	{
+		classifyOut->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+	}
 }
 
 //创建flowContext并将其与flow关联
 VOID FlowClassifyFn(const FWPS_INCOMING_VALUES* inFixedValues, const FWPS_INCOMING_METADATA_VALUES* inMetaValues, void* layerData, const void* classifyContext, const FWPS_FILTER* filter, UINT64 flowContext, FWPS_CLASSIFY_OUT* classifyOut)
 {
 	//创建flowContext
+<<<<<<< Updated upstream
+	PFLOW_CONTEXT ctx = ExAllocatePoolWithTag(NonPagedPool, sizeof(FLOW_CONTEXT), 'wfp1');
+
+	if (!ctx)
+=======
+	if (inMetaValues->processId != gTargetPid)
+>>>>>>> Stashed changes
+	{
+		classifyOut->actionType = FWP_ACTION_PERMIT;
+		return;
+	}
+
+<<<<<<< Updated upstream
+	RtlZeroMemory(ctx, sizeof(FLOW_CONTEXT));
+
+=======
 	PFLOW_CONTEXT ctx = ExAllocatePoolWithTag(NonPagedPool, sizeof(FLOW_CONTEXT), 'wfp1');
 
 	if (!ctx)
@@ -70,6 +117,7 @@ VOID FlowClassifyFn(const FWPS_INCOMING_VALUES* inFixedValues, const FWPS_INCOMI
 
 	RtlZeroMemory(ctx, sizeof(FLOW_CONTEXT));
 
+>>>>>>> Stashed changes
 	ctx->magic = 0x12345678;
 
 	//记录进程ID
@@ -82,7 +130,15 @@ VOID FlowClassifyFn(const FWPS_INCOMING_VALUES* inFixedValues, const FWPS_INCOMI
 	ctx->remotePort = inFixedValues->incomingValue[FWPS_FIELD_ALE_FLOW_ESTABLISHED_V4_IP_REMOTE_PORT].value.uint16;
 
 	//将flowContext与flow关联
+<<<<<<< Updated upstream
 	FwpsFlowAssociateContext(inMetaValues->flowHandle, FWPS_LAYER_STREAM_V4, gCalloutIdStream, (UINT64)ctx);
+=======
+	NTSTATUS status = FwpsFlowAssociateContext(inMetaValues->flowHandle, FWPS_LAYER_STREAM_V4, gCalloutIdStream, (UINT64)ctx);
+	if (!NT_SUCCESS(status))
+	{
+		ExFreePool(ctx);
+	}
+>>>>>>> Stashed changes
 
 	classifyOut->actionType = FWP_ACTION_PERMIT;
 }
@@ -96,7 +152,10 @@ VOID FlowDeleteFn(UINT16 layerId, UINT32 calloutId, UINT64 flowContext)
 
 	PFLOW_CONTEXT ctx = (PFLOW_CONTEXT)flowContext;
 
-	if (!ctx || ctx->magic != 0x12345678)
+	if (!ctx)
+		return;
+
+	if (ctx->magic != 0x12345678)
 	{
 		ExFreePool(ctx);
 		return;
@@ -209,11 +268,30 @@ NTSTATUS InitialWfp(PDEVICE_OBJECT device)
 	status = FwpmCalloutAdd(gEngineHandle, &mCallout, NULL, NULL);
 	if (!NT_SUCCESS(status)) goto EXIT;
 
+<<<<<<< Updated upstream
 	//添加 filter 到 STREAM 层
 	RtlZeroMemory(&filter, sizeof(filter));
 
 	filter.layerKey = FWPM_LAYER_STREAM_V4;
 	filter.subLayerKey = FWPM_SUBLAYER_UNIVERSAL;
+=======
+	//添加subLayer
+	FWPM_SUBLAYER subLayer = { 0 };
+	subLayer.subLayerKey = SUBLAYER_WFPMONITOR;
+	subLayer.displayData.name = L"WfpMonitor SubLayer";
+	subLayer.displayData.description = L"WfpMonitor SubLayer";
+	subLayer.flags = 0;
+	subLayer.weight = 0x100;   // 优先级
+	status = FwpmSubLayerAdd(gEngineHandle, &subLayer, NULL);
+	if (!NT_SUCCESS(status))
+		goto EXIT;
+
+	//添加 filter 到 STREAM 层
+	RtlZeroMemory(&filter, sizeof(filter));
+
+	filter.layerKey = FWPM_LAYER_STREAM_V4;
+	filter.subLayerKey = SUBLAYER_WFPMONITOR;
+>>>>>>> Stashed changes
 	filter.weight.type = FWP_EMPTY;
 
 	filter.action.type = FWP_ACTION_CALLOUT_INSPECTION;
@@ -229,7 +307,7 @@ NTSTATUS InitialWfp(PDEVICE_OBJECT device)
 	RtlZeroMemory(&filter, sizeof(filter));
 
 	filter.layerKey = FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4;
-	filter.subLayerKey = FWPM_SUBLAYER_UNIVERSAL;
+	filter.subLayerKey = SUBLAYER_WFPMONITOR;
 	filter.weight.type = FWP_EMPTY;
 
 	filter.action.type = FWP_ACTION_CALLOUT_INSPECTION;
@@ -268,6 +346,11 @@ VOID UnInitialWfp()
 		gFilterIdFlow = 0;
 	}
 
+<<<<<<< Updated upstream
+=======
+	FwpmSubLayerDeleteByKey(gEngineHandle, &SUBLAYER_WFPMONITOR);
+
+>>>>>>> Stashed changes
 	FwpmCalloutDeleteByKey(gEngineHandle, &CALLOUT_STREAM_GUID);
 	FwpmCalloutDeleteByKey(gEngineHandle, &CALLOUT_FLOW_GUID);
 
