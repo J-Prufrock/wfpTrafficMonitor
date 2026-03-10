@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/x64/Release/clean.ps1
+/x64/Release/result.txt
+/x64/Release/run.ps1
