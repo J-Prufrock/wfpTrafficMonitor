@@ -8,7 +8,6 @@
     <File Path="clean.ps1" />
     <File Path="README.md" />
     <File Path="run.ps1" />
-    <File Path="x64/Release/result.txt" />
     <File Path="笔试题附件.exe" />
   </Folder>
   <Project Path="driver/driver.vcxproj">
