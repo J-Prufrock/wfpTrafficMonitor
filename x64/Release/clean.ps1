@@ -1,5 +1,5 @@
 $Driver="WfpMonitor"
-$DriverPath="$PWD\x64\Release\driver\driver.sys"
+$DriverPath="$PWD\driver\driver.sys"
 
 sc.exe stop $Driver
 sc.exe delete $Driver

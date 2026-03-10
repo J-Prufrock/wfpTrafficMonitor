@@ -56,6 +56,7 @@ int main()
 	}
 
 	WaitForSingleObject(pi.hProcess, INFINITE);
+	Sleep(1000);//延迟1s等待flowDelete触发
 
 	FLOW_STATS stats;
 	if (DeviceIoControl(dev, IOCTL_GET_STATS, NULL, 0, &stats, sizeof(stats), &ret, NULL))
@@ -66,7 +67,7 @@ int main()
 	for (unsigned int i = 0; i < stats.count; i++)
 	{
 		stats.entries[i].ip = ntohl(stats.entries[i].ip);
-		stats.entries[i].port = ntohs(stats.entries[i].port);
+		//stats.entries[i].port = ntohs(stats.entries[i].port);
 		unsigned char b1 = stats.entries[i].ip & 0xFF;
 		unsigned char b2 = (stats.entries[i].ip >> 8) & 0xFF;
 		unsigned char b3 = (stats.entries[i].ip >> 16) & 0xFF;
