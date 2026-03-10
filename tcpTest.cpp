@@ -65,7 +65,7 @@ void run_client()
 
 	std::cout << "Client connected\n";
 
-	const int SIZE = 1024 * 1024;   // 1MB
+	const int SIZE = 1024;
 	char* buffer = new char[SIZE];
 
 	memset(buffer, 'A', SIZE);
